@@ -1,13 +1,8 @@
-from django.http import JsonResponse
-from django.shortcuts import render
-
-# Create your views here.
 from django.utils.crypto import get_random_string
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from covid_tracker.models import CovidAppUser
+from covid_tracker.models import CovidAppUser, CovidResult
 
 
 class RegisterUserView(APIView):
@@ -66,3 +61,33 @@ class RegisterAdminUserView(RegisterUserView):
             pincode=request_data['pincode'],
             is_staff=True
         )
+
+
+class UpdateCovidResultView(APIView):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        admin_id = request.data['admin_id']
+        admin_user = CovidAppUser.objects.get(pk=admin_id)
+        if not admin_user.is_staff:
+            return Response({'error': 'user is not admin', 'code': 'staff_user_required'}, status=400)
+        result = CovidResult.objects.update_or_create(
+            user_id=request.data['user_id'],
+            defaults={'result': request.data['result']}
+        )
+        return Response({'updated': True})
+
+
+class GetZoneInfoView(APIView):
+    def get(self, request, *args, **kwargs):
+        pincode = request.data['pincode']
+        num_cases = (CovidAppUser.objects
+                     .filter(pincode=pincode, covidresult__result=CovidResult.POSITIVE)
+                     .count())
+        if num_cases == 0:
+            zone_type = 'green'
+        elif num_cases < 5:
+            zone_type = 'orange'
+        else:
+            zone_type = 'red'
+        return Response({'num_cases': num_cases, 'zone_type': zone_type})
