@@ -16,6 +16,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from covid_tracker.views import RegisterUserView, RegisterAdminUserView, SelfAssessmentView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('register-user/', RegisterUserView.as_view(), name='register-user'),
+    path('register-admin/', RegisterAdminUserView.as_view(), name='register-admin'),
+    path('self-assessment/', SelfAssessmentView.as_view(), name='self-assessment'),
 ]
